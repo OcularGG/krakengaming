@@ -67,7 +67,7 @@ export default function Navigation() {
                             <Link
                               key={subItem.name}
                               href={subItem.href}
-                              className="block px-4 py-3 text-sm font-medium text-navy-dark hover:bg-brass/10 transition-colors first:rounded-t last:rounded-b border-b-2 border-transparent hover:border-brass"
+                              className="block px-4 py-3 text-sm font-medium text-navy-dark hover:bg-transparent transition-colors first:rounded-t last:rounded-b border-b-2 border-transparent hover:border-b-2 hover:border-brass-bright"
                               style={{fontFamily: 'Cinzel, serif'}}
                             >
                               {subItem.name}

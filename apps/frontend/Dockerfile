@@ -52,6 +52,10 @@ RUN adduser --system --uid 1001 nextjs
 # Copy built application
 COPY --from=builder /app/apps/frontend/public ./apps/frontend/public
 
+# Ensure uploads directory exists for file uploads
+RUN mkdir -p ./apps/frontend/public/uploads
+RUN chown nextjs:nodejs ./apps/frontend/public/uploads
+
 # Set the correct permission for prerender cache
 RUN mkdir .next
 RUN chown nextjs:nodejs .next

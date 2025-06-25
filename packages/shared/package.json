@@ -1,0 +1,11 @@
+{
+  "name": "@krakengaming/shared",
+  "version": "1.0.0",
+  "description": "Shared utilities and types for KrakenGaming",
+  "main": "index.js",
+  "scripts": {
+    "build": "echo 'No build needed'"
+  },
+  "dependencies": {},
+  "devDependencies": {}
+}

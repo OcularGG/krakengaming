@@ -1,431 +1,532 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useSession } from 'next-auth/react';
-import Link from 'next/link';
+import { 
+  PortBattle, 
+  FleetRole, 
+  Captain, 
+  ScreeningFleet, 
+  SHIPS, 
+  SHIP_NAMES, 
+  NATIONS, 
+  SHIP_RATES,
+  AVAILABLE_CLANS,
+  SignUpRequest
+} from '@/types/port-battle-types';
 
-// Constants for the PB system
-const SHIP_NAMES = {
-  "Santisima": 278,
-  "L'Ocean": 239,
-  "Santa Ana": 225,
-  "Victory": 216,
-  "DLC Victory": 224,
-  "Christian VII": 164,
-  "Bucentaure": 161,
-  "Redoutable": 148,
-  "Implacable": 163,
-  "St. Pavel": 150,
-  "Bellona": 134,
-  "3rd Rate (74)": 132,
-  "Wasa": 125,
-  "USS United States": 96,
-  "Constitution": 96,
-  "Rättvisan": 107,
-  "Agamemnon": 114,
-  "Leopard": 95,
-  "Indefatigable": 79,
-  "Ingermanland": 111,
-  "Wapen von Hamburg III": 120,
-  "Endymion": 85,
-  "Trincomalee": 87,
-  "Diana": 78,
-  "L'Hermione": 72,
-  "Santa Cecilia": 72,
-  "Essex": 71,
-  "Pirate Frigate(Cherubim)": 67,
-  "Belle Poule": 65,
-  "Frigate (Cherubim)": 66,
-  "LGV Refit": 40,
-  "Indiaman": 37,
-  "Surprise": 64,
-  "Renommee": 38,
-  "Le Gros Ventre": 28,
-  "Hercules": 58,
-  "Rattlesnake Heavy": 32,
-  "Pandora": 65,
-  "Le Requin": 30,
-  "Cerberus": 33,
-  "Niagara": 25,
-  "Mortar Brig": 15,
-  "Prince de Neufchatel": 25,
-  "Snow (Ontario)": 27,
-  "Mercury": 25,
-  "Rattlesnake": 22,
-  "Navy Brig (Fair American)": 22,
-  "Trader Snow": 26,
-  "Brig (Fair American)": 20,
-  "Pickle": 15,
-  "Yacht": 15,
-  "Privateer": 15,
-  "Cutter (Alert)": 15,
-  "Trader Lynx": 13,
-  "Lynx": 13,
-  "ADR": 143,
-  "Duke Of Kent": 353,
-  "San Pedro": 164
-};
-
-const CLAN_NAMES = [
-  "CLAN1", "CLAN2", "CLAN3", "CLAN4", "CLAN5", "Independent"
+// Available clans - you'll need to update this with your actual clan list
+const CLANS = [
+  'CLAN1', 'CLAN2', 'CLAN3', 'CLAN4', 'CLAN5',
+  'CLAN6', 'CLAN7', 'CLAN8', 'CLAN9', 'CLAN10'
 ];
 
-const NATIONS = [
-  "Great Britain",
-  "United States of America (USA)",
-  "France",
-  "the Pirates",
-  "Russia",
-  "Sweden"
-];
-
-// TypeScript interfaces
-interface FleetRole {
-  id: string;
-  roleName: string;
-  expectedShip?: string;
-}
-
-interface FleetComposition {
-  id: string;
-  name: string; // "Main", "Alternate 1", "Alternate 2"
-  roles: FleetRole[];
-}
-
-interface SignUpEntry {
-  id: string;
-  roleId: string;
-  captainName: string;
-  clan: string;
-  ship: string;
-  books: number;
-  alternateShip: string;
-  alternateBooks: number;
-  willingToScreen: boolean;
-  comments: string;
-  status: 'pending' | 'approved' | 'denied';
-  submittedAt: string;
-}
-
-interface ScreeningFleet {
-  id: string;
+interface SignUpModalProps {
+  role: FleetRole;
   portBattleId: string;
-  screeningType: 'Offensive' | 'Defensive';
-  observation: string;
-  shipsSpecific?: string[];
-  rateCategories?: string[];
-  nation: string;
-  commander: string;
-  captains: Array<{
-    name: string;
-    clan: string;
-  }>;
+  onClose: () => void;
+  onSignUp: (data: SignUpRequest) => void;
 }
 
-interface PortBattle {
-  id: string;
-  portName: string;
-  meetupTime: string; // UTC
-  battleStartTime: string; // UTC
-  waterType: 'Deep Water' | 'Shallow Water';
-  meetupLocation: string;
-  pbCommander: string;
-  secondICCommander: string;
-  reqCommander: string;
-  totalBRLimit: number;
-  creatorId: string;
-  fleetCompositions: FleetComposition[];
-  activeFleetId: string; // ID of currently active fleet composition
-  signUps: SignUpEntry[];
-  screeningFleets: ScreeningFleet[];
-  createdAt: string;
-}
-
-export default function PortBattlePage() {
-  const { data: session } = useSession();
-  const [portBattles, setPortBattles] = useState<PortBattle[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [showCreateForm, setShowCreateForm] = useState(false);
-  const [selectedPB, setSelectedPB] = useState<PortBattle | null>(null);
-  const [viewMode, setViewMode] = useState<'list' | 'detail' | 'create' | 'manage'>('list');
-
-  // Create form state
-  const [createForm, setCreateForm] = useState({
-    portName: '',
-    meetupTime: '',
-    battleStartTime: '',
-    waterType: 'Deep Water' as 'Deep Water' | 'Shallow Water',
-    meetupLocation: '',
-    pbCommander: '',
-    secondICCommander: '',
-    reqCommander: '',
-    totalBRLimit: 2000,
-    mainFleetRoles: 1,
-    alt1FleetRoles: 0,
-    alt2FleetRoles: 0
+function SignUpModal({ role, portBattleId, onClose, onSignUp }: SignUpModalProps) {
+  const [formData, setFormData] = useState({
+    ship: '',
+    books: 1,
+    alternateShip: '',
+    alternateBooks: 1,
+    willingToScreen: false,
+    comments: ''
   });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    onSignUp({
+      portBattleId,
+      roleId: role.id,
+      ...formData
+    });
+    onClose();
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+        <h3 className="text-lg font-semibold mb-4">Sign Up for Role #{role.position}</h3>
+        
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium mb-1">Primary Ship</label>
+            <select
+              value={formData.ship}
+              onChange={(e) => setFormData(prev => ({ ...prev, ship: e.target.value }))}
+              className="w-full p-2 border rounded-md"
+              required
+            >
+              <option value="">Select a ship...</option>
+              {SHIP_NAMES.map(ship => (
+                <option key={ship} value={ship}>{ship}</option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-1">Primary Books (1-5)</label>
+            <input
+              type="number"
+              min="1"
+              max="5"
+              value={formData.books}
+              onChange={(e) => setFormData(prev => ({ ...prev, books: parseInt(e.target.value) }))}
+              className="w-full p-2 border rounded-md"
+              required
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-1">Alternate Ship</label>
+            <select
+              value={formData.alternateShip}
+              onChange={(e) => setFormData(prev => ({ ...prev, alternateShip: e.target.value }))}
+              className="w-full p-2 border rounded-md"
+              required
+            >
+              <option value="">Select alternate ship...</option>
+              {SHIP_NAMES.map(ship => (
+                <option key={ship} value={ship}>{ship}</option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-1">Alternate Books (1-5)</label>
+            <input
+              type="number"
+              min="1"
+              max="5"
+              value={formData.alternateBooks}
+              onChange={(e) => setFormData(prev => ({ ...prev, alternateBooks: parseInt(e.target.value) }))}
+              className="w-full p-2 border rounded-md"
+              required
+            />
+          </div>
+
+          <div className="flex items-center">
+            <input
+              type="checkbox"
+              id="willingToScreen"
+              checked={formData.willingToScreen}
+              onChange={(e) => setFormData(prev => ({ ...prev, willingToScreen: e.target.checked }))}
+              className="mr-2"
+            />
+            <label htmlFor="willingToScreen" className="text-sm">Willing to screen?</label>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-1">Comments (optional)</label>
+            <textarea
+              value={formData.comments}
+              onChange={(e) => setFormData(prev => ({ ...prev, comments: e.target.value }))}
+              className="w-full p-2 border rounded-md"
+              rows={3}
+              placeholder="Any additional comments..."
+            />
+          </div>
+
+          <div className="flex gap-2 pt-4">
+            <button
+              type="submit"
+              className="flex-1 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"
+            >
+              Sign Up
+            </button>
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 bg-gray-300 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-400"
+            >
+              Cancel
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+function getShipBR(shipName: string): number {
+  const ship = SHIPS.find(s => s.name === shipName);
+  return ship?.br || 0;
+}
+
+export default function PortBattlesPage() {
+  const [portBattles, setPortBattles] = useState<PortBattle[]>([]);
+  const [selectedPB, setSelectedPB] = useState<PortBattle | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [showSignUpModal, setShowSignUpModal] = useState<FleetRole | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false); // This should come from auth
 
   useEffect(() => {
     fetchPortBattles();
   }, []);
 
   const fetchPortBattles = async () => {
-    setLoading(true);
     try {
       const response = await fetch('/api/port-battles');
-      if (response.ok) {
-        const data = await response.json();
-        setPortBattles(data.portBattles || []);
+      const data = await response.json();
+      setPortBattles(data);
+      if (data.length > 0) {
+        setSelectedPB(data[0]);
       }
     } catch (error) {
-      console.error('Failed to fetch port battles:', error);
+      console.error('Error fetching port battles:', error);
     } finally {
       setLoading(false);
     }
   };
 
-  const formatDateTime = (isoString: string) => {
-    return new Date(isoString).toLocaleString('en-GB', {
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-      timeZone: 'UTC',
-      timeZoneName: 'short'
-    });
-  };
+  const handleSignUp = async (signUpData: SignUpRequest) => {
+    try {
+      const response = await fetch('/api/port-battles?action=signup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(signUpData)
+      });
 
-  const calculateUsedBR = (pb: PortBattle) => {
-    const activeFleet = pb.fleetCompositions.find(f => f.id === pb.activeFleetId);
-    if (!activeFleet) return 0;
-
-    let totalBR = 0;
-    activeFleet.roles.forEach(role => {
-      const signUp = pb.signUps.find(s => s.roleId === role.id && s.status === 'approved');
-      if (signUp) {
-        const shipBR = SHIP_NAMES[signUp.ship as keyof typeof SHIP_NAMES] || 0;
-        totalBR += shipBR;
+      if (response.ok) {
+        // Refresh the port battle data
+        if (selectedPB) {
+          const updatedResponse = await fetch(`/api/port-battles?id=${selectedPB.id}`);
+          const updatedPB = await updatedResponse.json();
+          setSelectedPB(updatedPB);
+          
+          // Update in the list
+          setPortBattles(prev => prev.map(pb => pb.id === updatedPB.id ? updatedPB : pb));
+        }
+      } else {
+        const error = await response.json();
+        alert(error.error || 'Failed to sign up');
       }
-    });
-
-    return totalBR;
+    } catch (error) {
+      console.error('Error signing up:', error);
+      alert('Failed to sign up');
+    }
   };
 
-  const renderPortBattleList = () => {
-    if (loading) {
-      return (
-        <div className="text-center py-16">
-          <div className="text-4xl mb-4 loading-anchor">⚓</div>
-          <p className="text-navy-dark text-xl" style={{fontFamily: 'Cinzel, serif'}}>
-            Loading Port Battles...
-          </p>
-        </div>
-      );
+  const handleApproval = async (roleId: string, approved: boolean) => {
+    if (!selectedPB) return;
+
+    try {
+      const response = await fetch(`/api/port-battles?id=${selectedPB.id}&action=approve-captain`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ roleId, approved })
+      });
+
+      if (response.ok) {
+        // Refresh the port battle data
+        const updatedResponse = await fetch(`/api/port-battles?id=${selectedPB.id}`);
+        const updatedPB = await updatedResponse.json();
+        setSelectedPB(updatedPB);
+      }
+    } catch (error) {
+      console.error('Error updating approval:', error);
     }
-
-    if (portBattles.length === 0) {
-      return (
-        <div className="neo-brutal-box max-w-2xl mx-auto p-8 text-center">
-          <div className="text-6xl mb-4">⚔️</div>
-          <h2 className="text-2xl font-bold text-navy-dark mb-4" style={{fontFamily: 'Cinzel, serif'}}>
-            No Port Battles Scheduled
-          </h2>
-          <p className="text-navy-dark mb-6" style={{fontFamily: 'Crimson Text, serif'}}>
-            Be the first to organize a port battle and rally the fleet!
-          </p>
-          {session && (
-            <button
-              onClick={() => setViewMode('create')}
-              className="neo-brutal-button bg-brass text-navy-dark px-6 py-3"
-            >
-              Create Port Battle
-            </button>
-          )}
-        </div>
-      );
-    }
-
-    return (
-      <div className="space-y-6">
-        {portBattles.map((pb) => {
-          const usedBR = calculateUsedBR(pb);
-          const remainingBR = pb.totalBRLimit - usedBR;
-          const activeFleet = pb.fleetCompositions.find(f => f.id === pb.activeFleetId);
-          const filledRoles = activeFleet ? pb.signUps.filter(s =>
-            activeFleet.roles.some(r => r.id === s.roleId) && s.status === 'approved'
-          ).length : 0;
-          const totalRoles = activeFleet ? activeFleet.roles.length : 0;
-
-          return (
-            <div key={pb.id} className="neo-brutal-box p-6">
-              <div className="flex justify-between items-start mb-4">
-                <div>
-                  <h3 className="text-2xl font-bold text-navy-dark mb-2" style={{fontFamily: 'Cinzel, serif'}}>
-                    {pb.portName}
-                  </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                    <div>
-                      <p><strong>Meetup:</strong> {formatDateTime(pb.meetupTime)}</p>
-                      <p><strong>Battle Start:</strong> {formatDateTime(pb.battleStartTime)}</p>
-                      <p><strong>Water Type:</strong> {pb.waterType}</p>
-                    </div>
-                    <div>
-                      <p><strong>Location:</strong> {pb.meetupLocation}</p>
-                      <p><strong>PB Commander:</strong> {pb.pbCommander}</p>
-                      <p><strong>BR Used:</strong> {usedBR}/{pb.totalBRLimit} ({remainingBR} remaining)</p>
-                    </div>
-                  </div>
-                </div>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => {
-                      setSelectedPB(pb);
-                      setViewMode('detail');
-                    }}
-                    className="neo-brutal-button bg-brass text-navy-dark px-4 py-2"
-                  >
-                    View Details
-                  </button>
-                  {session?.user && session.user.discordId === pb.creatorId && (
-                    <button
-                      onClick={() => {
-                        setSelectedPB(pb);
-                        setViewMode('manage');
-                      }}
-                      className="neo-brutal-button bg-sail-white text-navy-dark px-4 py-2"
-                    >
-                      Manage
-                    </button>
-                  )}
-                </div>
-              </div>
-
-              <div className="bg-sandstone-100 p-4 border-2 border-navy-dark">
-                <div className="flex justify-between items-center">
-                  <span className="font-semibold">Fleet Status:</span>
-                  <span className={`px-3 py-1 rounded ${
-                    filledRoles === totalRoles ? 'bg-green-200 text-green-800' :
-                    filledRoles > totalRoles * 0.7 ? 'bg-yellow-200 text-yellow-800' :
-                    'bg-red-200 text-red-800'
-                  }`}>
-                    {filledRoles}/{totalRoles} roles filled
-                  </span>
-                </div>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-    );
   };
+
+  if (loading) {
+    return <div className="flex justify-center items-center min-h-64">Loading...</div>;
+  }
+
+  if (!selectedPB) {
+    return <div className="text-center py-8">No port battles available</div>;
+  }
+
+  const activeFleet = selectedPB.fleetCompositions.find(fc => fc.isActive);
+  const remainingBR = selectedPB.brLimit - selectedPB.currentBR;
 
   return (
-    <div className="min-h-screen bg-sandstone-light pt-16">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        {/* Header */}
-        <div className="text-center mb-16">
-          <h1 className="text-5xl md:text-6xl font-bold text-navy-dark mb-8" style={{fontFamily: 'Cinzel, serif'}}>
-            <span className="text-brass">Port Battle</span> Command
-          </h1>
-          <p className="text-xl text-navy-dark/80 max-w-3xl mx-auto" style={{fontFamily: 'Crimson Text, serif'}}>
-            Organize and join strategic port battle operations
-          </p>
-        </div>
-
-        {/* Navigation */}
-        <div className="flex justify-center mb-8">
-          <div className="flex gap-2">
-            <button
-              onClick={() => setViewMode('list')}
-              className={`neo-brutal-button px-6 py-3 ${
-                viewMode === 'list' ? 'bg-brass-bright text-navy-dark' : 'bg-sail-white text-navy-dark'
-              }`}
+    <div className="container mx-auto px-4 py-8">
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold mb-4">Port Battles</h1>
+        
+        {/* Port Battle Selection */}
+        {portBattles.length > 1 && (
+          <div className="mb-6">
+            <label className="block text-sm font-medium mb-2">Select Port Battle:</label>
+            <select
+              value={selectedPB.id}
+              onChange={(e) => {
+                const pb = portBattles.find(p => p.id === e.target.value);
+                setSelectedPB(pb || null);
+              }}
+              className="p-2 border rounded-md"
             >
-              All Port Battles
-            </button>
-            {session && (
-              <button
-                onClick={() => setViewMode('create')}
-                className={`neo-brutal-button px-6 py-3 ${
-                  viewMode === 'create' ? 'bg-brass-bright text-navy-dark' : 'bg-sail-white text-navy-dark'
-                }`}
-              >
-                Create New
-              </button>
-            )}
-          </div>
-        </div>
-
-        {/* Content */}
-        {viewMode === 'list' && renderPortBattleList()}
-
-        {viewMode === 'create' && (
-          <div className="max-w-4xl mx-auto">
-            <div className="neo-brutal-box p-8">
-              <h2 className="text-2xl font-bold text-navy-dark mb-6" style={{fontFamily: 'Cinzel, serif'}}>
-                Create New Port Battle
-              </h2>
-              <p className="text-navy-dark/80 mb-8">Coming soon - Full creation form with fleet composition setup</p>
-              <button
-                onClick={() => setViewMode('list')}
-                className="neo-brutal-button bg-cannon-smoke text-sail-white px-6 py-3"
-              >
-                Back to List
-              </button>
-            </div>
-          </div>
-        )}
-
-        {viewMode === 'detail' && selectedPB && (
-          <div className="max-w-6xl mx-auto">
-            <div className="neo-brutal-box p-8">
-              <h2 className="text-2xl font-bold text-navy-dark mb-6" style={{fontFamily: 'Cinzel, serif'}}>
-                {selectedPB.portName} - Details
-              </h2>
-              <p className="text-navy-dark/80 mb-8">Coming soon - Detailed view with sign-up sheet</p>
-              <button
-                onClick={() => setViewMode('list')}
-                className="neo-brutal-button bg-cannon-smoke text-sail-white px-6 py-3"
-              >
-                Back to List
-              </button>
-            </div>
-          </div>
-        )}
-
-        {viewMode === 'manage' && selectedPB && (
-          <div className="max-w-6xl mx-auto">
-            <div className="neo-brutal-box p-8">
-              <h2 className="text-2xl font-bold text-navy-dark mb-6" style={{fontFamily: 'Cinzel, serif'}}>
-                Manage {selectedPB.portName}
-              </h2>
-              <p className="text-navy-dark/80 mb-8">Coming soon - Management interface with approval queue</p>
-              <button
-                onClick={() => setViewMode('list')}
-                className="neo-brutal-button bg-cannon-smoke text-sail-white px-6 py-3"
-              >
-                Back to List
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Subtle Login Prompt for Non-authenticated Users */}
-        {!session && (
-          <div className="text-center mt-12">
-            <p className="text-navy-dark/70 mb-4" style={{fontFamily: 'Crimson Text, serif'}}>
-              Want to create or join port battles?
-              <Link
-                href="/api/auth/signin"
-                className="text-brass hover:text-brass-bright underline ml-2 font-semibold"
-              >
-                Join the Fleet
-              </Link>
-            </p>
+              {portBattles.map(pb => (
+                <option key={pb.id} value={pb.id}>
+                  {pb.port} - {new Date(pb.battleStartTimeUTC).toLocaleDateString()}
+                </option>
+              ))}
+            </select>
           </div>
         )}
       </div>
+
+      {/* Port Battle Info */}
+      <div className="bg-gray-50 rounded-lg p-6 mb-8">
+        <h2 className="text-2xl font-semibold mb-4">{selectedPB.port} Port Battle</h2>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-sm">
+          <div>
+            <strong>Meetup Time (UTC):</strong><br />
+            {new Date(selectedPB.meetupTimeUTC).toLocaleString()}
+          </div>
+          <div>
+            <strong>Battle Start (UTC):</strong><br />
+            {new Date(selectedPB.battleStartTimeUTC).toLocaleString()}
+          </div>
+          <div>
+            <strong>Water Type:</strong><br />
+            {selectedPB.waterType}
+          </div>
+          <div>
+            <strong>Meetup Location:</strong><br />
+            {selectedPB.meetupLocation}
+          </div>
+          <div>
+            <strong>PB Commander:</strong><br />
+            {selectedPB.pbCommander}
+          </div>
+          <div>
+            <strong>2IC Commander:</strong><br />
+            {selectedPB.secondInCommand}
+          </div>
+          <div>
+            <strong>REQ Commander:</strong><br />
+            {selectedPB.reqCommander}
+          </div>
+          <div>
+            <strong>BR Limit:</strong><br />
+            {selectedPB.brLimit}
+          </div>
+          <div>
+            <strong>Current BR:</strong><br />
+            <span className={remainingBR < 0 ? 'text-red-600 font-bold' : 'text-green-600'}>
+              {selectedPB.currentBR} / {selectedPB.brLimit}
+            </span>
+          </div>
+          <div>
+            <strong>Remaining BR:</strong><br />
+            <span className={remainingBR < 0 ? 'text-red-600 font-bold' : 'text-green-600'}>
+              {remainingBR}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* Fleet Composition Tabs */}
+      {selectedPB.fleetCompositions.length > 1 && (
+        <div className="mb-6">
+          <div className="flex border-b">
+            {selectedPB.fleetCompositions.map(fleet => (
+              <button
+                key={fleet.id}
+                onClick={() => {
+                  // TODO: Implement fleet switching
+                }}
+                className={`px-4 py-2 border-b-2 ${
+                  fleet.isActive 
+                    ? 'border-blue-500 text-blue-600' 
+                    : 'border-transparent text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                {fleet.name}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Fleet Roster Table */}
+      {activeFleet && (
+        <div className="bg-white rounded-lg shadow overflow-hidden">
+          <div className="px-6 py-4 bg-gray-50 border-b">
+            <h3 className="text-lg font-semibold">{activeFleet.name} - Sign Up Sheet</h3>
+          </div>
+          
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Position
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Clan
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Captain
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Ship
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    BR
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Books
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Alt Ship
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Alt Books
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Screen?
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Comments
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Status
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {activeFleet.roles.map((role) => (
+                  <tr key={role.id} className="hover:bg-gray-50">
+                    <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                      {role.position}
+                    </td>
+                    <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {role.captain?.clan || '-'}
+                    </td>
+                    <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {role.captain?.name || '-'}
+                    </td>
+                    <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {role.captain?.ship || '-'}
+                    </td>
+                    <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {role.captain?.ship ? getShipBR(role.captain.ship) : '-'}
+                    </td>
+                    <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {role.captain?.books || '-'}
+                    </td>
+                    <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {role.captain?.alternateShip || '-'}
+                    </td>
+                    <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {role.captain?.alternateBooks || '-'}
+                    </td>
+                    <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {role.captain?.willingToScreen ? 'Yes' : 'No'}
+                    </td>
+                    <td className="px-4 py-4 text-sm text-gray-900 max-w-xs truncate">
+                      {role.captain?.comments || '-'}
+                    </td>
+                    <td className="px-4 py-4 whitespace-nowrap text-sm">
+                      {role.captain && (
+                        <span className={`px-2 py-1 text-xs rounded-full ${
+                          role.captain.status === 'approved' 
+                            ? 'bg-green-100 text-green-800'
+                            : role.captain.status === 'pending'
+                            ? 'bg-yellow-100 text-yellow-800'
+                            : 'bg-red-100 text-red-800'
+                        }`}>
+                          {role.captain.status}
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-4 py-4 whitespace-nowrap text-sm">
+                      {!role.captain ? (
+                        <button
+                          onClick={() => setShowSignUpModal(role)}
+                          className="bg-blue-600 text-white px-3 py-1 rounded text-xs hover:bg-blue-700"
+                        >
+                          Sign Up
+                        </button>
+                      ) : isAdmin && role.captain.status === 'pending' ? (
+                        <div className="flex gap-1">
+                          <button
+                            onClick={() => handleApproval(role.id, true)}
+                            className="bg-green-600 text-white px-2 py-1 rounded text-xs hover:bg-green-700"
+                          >
+                            ✓
+                          </button>
+                          <button
+                            onClick={() => handleApproval(role.id, false)}
+                            className="bg-red-600 text-white px-2 py-1 rounded text-xs hover:bg-red-700"
+                          >
+                            ✗
+                          </button>
+                        </div>
+                      ) : null}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* Screening Fleets */}
+      {selectedPB.screeningFleets.length > 0 && (
+        <div className="mt-8">
+          <h3 className="text-xl font-semibold mb-4">Screening Fleets</h3>
+          {selectedPB.screeningFleets.map((fleet, index) => (
+            <div key={fleet.id} className="bg-white rounded-lg shadow mb-4 overflow-hidden">
+              <div className="px-6 py-4 bg-gray-50 border-b">
+                <h4 className="text-lg font-medium">
+                  Screening Fleet #{index + 1} - {fleet.type} ({fleet.nation})
+                </h4>
+                <p className="text-sm text-gray-600">Commander: {fleet.commander}</p>
+                <p className="text-sm text-gray-600">Observation: {fleet.observation}</p>
+                <p className="text-sm text-gray-600">
+                  Requirements: {fleet.shipRequirements.join(', ')}
+                </p>
+              </div>
+              
+              <div className="p-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {fleet.captains.map((captain, idx) => (
+                    <div key={idx} className="border rounded p-3">
+                      <div className="font-medium">{captain.name}</div>
+                      <div className="text-sm text-gray-600">{captain.clan}</div>
+                      <span className={`inline-block px-2 py-1 text-xs rounded-full mt-1 ${
+                        captain.status === 'approved' 
+                          ? 'bg-green-100 text-green-800'
+                          : captain.status === 'pending'
+                          ? 'bg-yellow-100 text-yellow-800'
+                          : 'bg-red-100 text-red-800'
+                      }`}>
+                        {captain.status}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+                
+                <button className="mt-4 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+                  Sign Up for Screening
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Sign Up Modal */}
+      {showSignUpModal && (
+        <SignUpModal
+          role={showSignUpModal}
+          portBattleId={selectedPB.id}
+          onClose={() => setShowSignUpModal(null)}
+          onSignUp={handleSignUp}
+        />
+      )}
     </div>
   );
 }

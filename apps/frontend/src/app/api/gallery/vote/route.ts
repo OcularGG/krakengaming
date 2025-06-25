@@ -4,7 +4,7 @@ import { NextRequest, NextResponse } from 'next/server';
 const votes: { id: string; galleryItemId: string; userId: string; voteType: 'upvote' | 'downvote'; createdAt: string }[] = [];
 
 // Import the gallery items from the main route to update vote counts
-async function updateVoteCounts(itemId: string) {
+async function updateVoteCounts(_itemId: string) {
   // In a real app, this would update the database
   // For now, we'll handle this in the main API route
   return true;

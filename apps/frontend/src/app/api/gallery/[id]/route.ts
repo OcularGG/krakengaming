@@ -2,12 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 
 // Import the gallery items from the main route
 // In a real app, this would be from a database
-let galleryItems: any[] = [];
-
-// Load initial data (this is a workaround for the in-memory storage)
-import('../route').then(module => {
-  // We'll need to access the data from the main route file
-});
+const galleryItems: unknown[] = [];
 
 export async function DELETE(
   request: NextRequest,
@@ -27,7 +22,7 @@ export async function DELETE(
     const galleryResponse = await fetch(`${baseUrl}/api/gallery?limit=1000`);
     const galleryData = await galleryResponse.json();
 
-    const item = galleryData.items.find((item: any) => item.id === itemId);
+    const item = galleryData.items.find((item: { id: string }) => item.id === itemId);
 
     if (!item) {
       return NextResponse.json({ error: 'Item not found' }, { status: 404 });

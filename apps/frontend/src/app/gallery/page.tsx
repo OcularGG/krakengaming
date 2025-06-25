@@ -626,8 +626,8 @@ export default function GalleryPage() {
           →
         </button>
 
-        <div className="neo-brutal-box bg-sail-white max-w-6xl w-full max-h-[90vh] overflow-hidden relative">
-          <div className="p-4 border-b-4 border-navy-dark flex justify-between items-center">
+        <div className="neo-brutal-box bg-sail-white max-w-6xl w-full max-h-[90vh] flex flex-col relative">
+          <div className="p-4 border-b-4 border-navy-dark flex justify-between items-center flex-shrink-0">
             <h3 className="text-xl font-bold text-navy-dark" style={{fontFamily: 'Cinzel, serif'}}>
               {item.title}
             </h3>
@@ -662,14 +662,13 @@ export default function GalleryPage() {
             </div>
           </div>
 
-          <div className="max-h-[calc(90vh-160px)] overflow-y-auto">
+          <div className="flex-1 overflow-y-auto min-h-0">
             {type === 'video' ? (
               <div className="aspect-video">
                 <iframe
                   src={`https://www.youtube.com/embed/${getYouTubeVideoId(item.url)}?autoplay=1`}
                   className="w-full h-full"
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                  allowFullScreen
                 />
               </div>
             ) : (
@@ -679,7 +678,7 @@ export default function GalleryPage() {
                   <img
                     src={item.url}
                     alt={item.title}
-                    className="max-w-full max-h-[60vh] object-contain"
+                    className="max-w-full max-h-[50vh] object-contain"
                     onError={(e) => {
                       e.currentTarget.src = '/placeholder-image.jpg';
                     }}
@@ -855,58 +854,6 @@ export default function GalleryPage() {
           </p>
         </div>
 
-        {/* Recent Activity Section */}
-        {galleryData && galleryData.items.length > 0 && (
-          <div className="mb-12">
-            <div className="neo-brutal-box p-6">
-              <h2 className="text-2xl font-bold text-navy-dark mb-6" style={{fontFamily: 'Cinzel, serif'}}>
-                Recent Activity
-              </h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                {galleryData.items.slice(0, 4).map((item) => (
-                  <div
-                    key={item.id}
-                    className="bg-white border-2 border-navy-dark p-3 cursor-pointer hover:bg-brass/10 transition-colors"
-                    onClick={() => {
-                      setSelectedMedia({item, type: item.type});
-                    }}
-                  >
-                    <div className="relative aspect-video mb-2 bg-navy-dark/10">
-                      <LazyImage
-                        src={item.thumbnail || item.url}
-                        alt={item.title}
-                        className="w-full h-full object-cover"
-                        onError={(e) => {
-                          e.currentTarget.src = '/placeholder-image.jpg';
-                        }}
-                      />
-                      {item.type === 'video' && (
-                        <div className="absolute inset-0 flex items-center justify-center bg-navy-dark/40">
-                          <div className="bg-brass/90 rounded-full p-2">
-                            <svg className="w-4 h-4 text-navy-dark ml-0.5" fill="currentColor" viewBox="0 0 24 24">
-                              <path d="M8 5v14l11-7z"/>
-                            </svg>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                    <h4 className="font-semibold text-navy-dark text-sm mb-1 line-clamp-2" style={{fontFamily: 'Cinzel, serif'}}>
-                      {item.title}
-                    </h4>
-                    <div className="flex justify-between items-center text-xs text-gray-600">
-                      <span>▲ {item.upvotes}</span>
-                      <span>{item.viewCount} views</span>
-                    </div>
-                    <div className="text-xs text-brass mt-1">
-                      {formatDate(item.createdAt)}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
-
         {/* Search and Filter Controls */}
         <div className="neo-brutal-box p-6 mb-8">
           <div className="flex flex-col gap-6">
@@ -1032,6 +979,58 @@ export default function GalleryPage() {
             </div>
           </div>
         </div>
+
+        {/* Recent Activity Section */}
+        {galleryData && galleryData.items.length > 0 && (
+          <div className="mb-12">
+            <div className="neo-brutal-box p-6">
+              <h2 className="text-2xl font-bold text-navy-dark mb-6" style={{fontFamily: 'Cinzel, serif'}}>
+                Recent Activity
+              </h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                {galleryData.items.slice(0, 4).map((item) => (
+                  <div
+                    key={item.id}
+                    className="bg-white border-2 border-navy-dark p-3 cursor-pointer hover:bg-brass/10 transition-colors"
+                    onClick={() => {
+                      setSelectedMedia({item, type: item.type});
+                    }}
+                  >
+                    <div className="relative aspect-video mb-2 bg-navy-dark/10">
+                      <LazyImage
+                        src={item.thumbnail || item.url}
+                        alt={item.title}
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          e.currentTarget.src = '/placeholder-image.jpg';
+                        }}
+                      />
+                      {item.type === 'video' && (
+                        <div className="absolute inset-0 flex items-center justify-center bg-navy-dark/40">
+                          <div className="bg-brass/90 rounded-full p-2">
+                            <svg className="w-4 h-4 text-navy-dark ml-0.5" fill="currentColor" viewBox="0 0 24 24">
+                              <path d="M8 5v14l11-7z"/>
+                            </svg>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                    <h4 className="font-semibold text-navy-dark text-sm mb-1 line-clamp-2" style={{fontFamily: 'Cinzel, serif'}}>
+                      {item.title}
+                    </h4>
+                    <div className="flex justify-between items-center text-xs text-gray-600">
+                      <span>▲ {item.upvotes}</span>
+                      <span>{item.viewCount} views</span>
+                    </div>
+                    <div className="text-xs text-brass mt-1">
+                      {formatDate(item.createdAt)}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Upload Section - Only shown if logged in */}
         {session && (
