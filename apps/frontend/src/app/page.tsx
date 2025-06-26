@@ -503,19 +503,6 @@ export default function HomePage() {
           </div>
         </div>
       </section>
-
-      {/* Footer */}
-      <footer className="bg-navy-dark py-12 border-t-4 border-brass">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center">
-            <div className="border-t border-brass-dark pt-6">
-              <p className="text-brass text-sm" style={{fontFamily: 'Cinzel, serif'}}>
-                © 2025 Kraken Gaming. All rights reserved.
-              </p>
-            </div>
-          </div>
-        </div>
-      </footer>
     </main>
   );
 }

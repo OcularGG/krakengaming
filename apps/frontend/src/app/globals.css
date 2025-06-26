@@ -267,21 +267,38 @@ h1, h2, h3, h4, h5, h6 {
   box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4);
 }
 
-/* Enhanced Navigation Hover Effects */
+/* Enhanced Navigation Hover Effects - Underline Style */
 .nav-item {
   background: transparent;
   transition: all 0.3s ease;
   position: relative;
+  border-bottom: 2px solid transparent;
 }
 
 .nav-item:hover {
-  background: var(--brass) !important;
+  background: transparent !important;
   transform: translateY(-2px);
-  box-shadow: 0 4px 8px rgba(184, 134, 11, 0.3);
+  border-bottom: 2px solid var(--brass-bright);
 }
 
 .nav-item.active {
-  background: var(--brass) !important;
+  background: transparent !important;
+  border-bottom: 2px solid var(--brass-bright);
+}
+
+/* Navigation Submenu Items */
+.nav-submenu-item {
+  background: transparent;
+  transition: all 0.3s ease;
+  position: relative;
+  border-bottom: 2px solid transparent;
+  margin-bottom: 2px;
+}
+
+.nav-submenu-item:hover {
+  background: transparent !important;
+  border-bottom: 2px solid var(--brass-bright);
+  padding-left: 1.25rem; /* Slight indent on hover for visual feedback */
 }
 
 /* Hero section improvements */

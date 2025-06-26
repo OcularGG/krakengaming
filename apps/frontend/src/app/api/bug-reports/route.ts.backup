@@ -1,0 +1,139 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
+import { prisma } from '@/lib/prisma';
+
+// Bug report validation schema
+const BugReportSchema = z.object({
+  title: z.string().min(3).max(200),
+  description: z.string().min(10).max(2000),
+  severity: z.enum(['Low', 'Medium', 'High', 'Critical']),
+  browser: z.string().max(100).optional(),
+  reporterDiscordUsername: z.string().min(1).max(100),
+  reporterEmail: z.string().email().optional(),
+});
+
+export async function POST(request: NextRequest) {
+  try {
+    const body = await request.json();
+    
+    // Validate the bug report data
+    const validatedData = BugReportSchema.parse(body);
+
+    // Create bug report record
+    const bugReport = await prisma.bugReport.create({
+      data: {
+        title: validatedData.title,
+        description: validatedData.description,
+        severity: validatedData.severity,
+        reporterId: session.user.id || validatedData.reporterEmail || 'anonymous',
+        environment: validatedData.browser || null,
+        stepsToReproduce: validatedData.stepsToReproduce || null,
+        expectedBehavior: validatedData.expectedBehavior || null,
+        actualBehavior: validatedData.actualBehavior || null,
+        status: 'OPEN',
+      },
+    });
+
+    return NextResponse.json({
+      success: true,
+      bugReportId: bugReport.id,
+    });
+
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return NextResponse.json({
+        error: 'Validation failed',
+        details: error.errors,
+      }, { status: 400 });
+    }
+
+    console.error('Error submitting bug report:', error);
+    return NextResponse.json({
+      error: 'Failed to submit bug report',
+    }, { status: 500 });
+  }
+}
+
+export async function GET(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const isAdmin = searchParams.get('admin') === 'true';
+    
+    // For public view, only show publicly visible bugs
+    // For admin view, show all bugs
+    const bugReports = await prisma.bugReport.findMany({
+      where: isAdmin ? {} : { isPubliclyVisible: true },
+      orderBy: [
+        { severity: 'desc' }, // Critical, High, Medium, Low
+        { createdAt: 'desc' },
+      ],
+      include: {
+        attachments: true,
+        duplicates: {
+          select: {
+            id: true,
+            title: true,
+          },
+        },
+        duplicateOf: {
+          select: {
+            id: true,
+            title: true,
+          },
+        },
+      },
+    });
+
+    return NextResponse.json({ bugReports });
+  } catch (error) {
+    console.error('Bug reports fetch error:', error);
+    return NextResponse.json(
+      { error: 'Failed to fetch bug reports' },
+      { status: 500 }
+    );
+  }
+}
+
+// PATCH endpoint for admin updates
+export async function PATCH(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const bugId = searchParams.get('id');
+
+    if (!bugId) {
+      return NextResponse.json({ error: 'Bug ID is required' }, { status: 400 });
+    }
+
+    const body = await request.json();
+    const updateData: any = {};
+
+    // Only allow specific fields to be updated
+    if (body.status) updateData.status = body.status;
+    if (body.isPubliclyVisible !== undefined) updateData.isPubliclyVisible = body.isPubliclyVisible;
+    if (body.adminNotes) updateData.adminNotes = body.adminNotes;
+    if (body.duplicateOfId) updateData.duplicateOfId = body.duplicateOfId;
+    if (body.fixedBy) updateData.fixedBy = body.fixedBy;
+    if (body.fixedInVersion) updateData.fixedInVersion = body.fixedInVersion;
+    
+    // If marking as fixed, set fixedAt timestamp
+    if (body.status === 'Fixed' && !updateData.fixedAt) {
+      updateData.fixedAt = new Date();
+    }
+
+    const updatedBugReport = await prisma.bugReport.update({
+      where: { id: bugId },
+      data: updateData,
+    });
+
+    return NextResponse.json({
+      success: true,
+      bugReport: updatedBugReport,
+    });
+
+  } catch (error) {
+    console.error('Error updating bug report:', error);
+    return NextResponse.json({
+      error: 'Failed to update bug report',
+    }, { status: 500 });
+  }
+}

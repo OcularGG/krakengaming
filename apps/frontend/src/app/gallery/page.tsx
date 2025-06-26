@@ -610,23 +610,7 @@ export default function GalleryPage() {
 
     return (
       <div className="fixed inset-0 bg-navy-dark/90 z-50 flex items-center justify-center p-4 modal-backdrop">
-        {/* Navigation Arrows - On the sides */}
-        <button
-          onClick={() => navigateModal('prev')}
-          className="fixed left-8 top-1/2 -translate-y-1/2 z-[60] neo-brutal-button bg-brass text-navy-dark w-14 h-14 flex items-center justify-center text-2xl shadow-lg"
-          title="Previous image"
-        >
-          ←
-        </button>
-        <button
-          onClick={() => navigateModal('next')}
-          className="fixed right-8 top-1/2 -translate-y-1/2 z-[60] neo-brutal-button bg-brass text-navy-dark w-14 h-14 flex items-center justify-center text-2xl shadow-lg"
-          title="Next image"
-        >
-          →
-        </button>
-
-        <div className="neo-brutal-box bg-sail-white max-w-6xl w-full max-h-[90vh] flex flex-col relative">
+        <div className="neo-brutal-box bg-sail-white max-w-4xl xl:max-w-5xl w-full max-h-[90vh] flex flex-col relative mx-4 md:mx-16 lg:mx-20">
           <div className="p-4 border-b-4 border-navy-dark flex justify-between items-center flex-shrink-0">
             <h3 className="text-xl font-bold text-navy-dark" style={{fontFamily: 'Cinzel, serif'}}>
               {item.title}
@@ -673,16 +657,35 @@ export default function GalleryPage() {
               </div>
             ) : (
               <div className="p-4">
-                {/* Image Container */}
-                <div className="flex justify-center items-center mb-4">
+                {/* Image Container with Navigation Arrows */}
+                <div className="relative flex justify-center items-center mb-4 min-h-[50vh]">
+                  {/* Left Arrow */}
+                  <button
+                    onClick={() => navigateModal('prev')}
+                    className="absolute left-4 top-1/2 -translate-y-1/2 z-10 neo-brutal-button bg-brass text-navy-dark w-12 h-12 flex items-center justify-center text-xl shadow-lg hover:bg-brass/80 transition-colors"
+                    title="Previous image"
+                  >
+                    ←
+                  </button>
+                  
+                  {/* Image */}
                   <img
                     src={item.url}
                     alt={item.title}
-                    className="max-w-full max-h-[50vh] object-contain"
+                    className="max-w-full max-h-[50vh] object-contain mx-16"
                     onError={(e) => {
                       e.currentTarget.src = '/placeholder-image.jpg';
                     }}
                   />
+                  
+                  {/* Right Arrow */}
+                  <button
+                    onClick={() => navigateModal('next')}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 z-10 neo-brutal-button bg-brass text-navy-dark w-12 h-12 flex items-center justify-center text-xl shadow-lg hover:bg-brass/80 transition-colors"
+                    title="Next image"
+                  >
+                    →
+                  </button>
                 </div>
               </div>
             )}
@@ -1373,7 +1376,7 @@ export default function GalleryPage() {
                       )}
 
                       {/* View Count */}
-                      <div className="text-sm text-navy-dark neo-brutal-button bg-sail-white px-3 py-2">
+                      <div className="text-sm text-navy-dark">
                         {item.viewCount} views
                       </div>
                     </div>
